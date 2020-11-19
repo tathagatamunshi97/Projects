@@ -1,0 +1,247 @@
+adult<-read.csv("R-Course-HTML-Notes/R-for-Data-Science-and-Machine-Learning/Training Exercises/Machine Learning Projects/CSV files for ML Projects/adult_sal.csv")
+print(head(adult))
+print(str(adult))
+
+####removing auto index####
+library(dplyr)
+adult<- select(adult,-X)
+print(head(adult))
+print(summary(adult))
+
+####Data Cleaning###
+###1.Merging employee type into lesser columns###
+print(table(adult$type_employer))
+unemp<-function(job){
+  job<-as.character(job)
+  if (job=='Never-worked' | job== 'Without-pay'){
+    return('Unemployed')
+  } else{
+    return(job)
+  }
+}
+
+###Applying the factor grouping###
+adult$type_employer<-sapply(adult$type_employer,unemp)
+print(table(adult$type_employer))
+
+gov<-function(job){
+  job<-as.character(job)
+  if (job=='Local-gov' | job== 'State-gov'){
+    return('S&L-Gov')
+  } else{
+    return(job)
+  }
+}
+adult$type_employer<-sapply(adult$type_employer,gov)
+print(table(adult$type_employer))
+
+selfemp<-function(job){
+  job<-as.character(job)
+  if (job=='Self-emp-inc' | job== 'Self-emp-not-inc'){
+    return('Self-Employ')
+  } else{
+    return(job)
+  }
+}
+adult$type_employer<-sapply(adult$type_employer,selfemp)
+print(table(adult$type_employer))
+
+###Marital Status##
+print(table(adult$marital))
+unmarried<-function(marita){
+  marita<-as.character(marita)
+  if (marita=='Divorced' | marita== 'Separated'  |  marita=='Widowed'){
+    return('Unmarried')
+  }else if(marita=='Married-AF-spouse' | marita== 'Married-civ-spouse'  |  marita=='Married-spouse-absent'){
+    return('Married')
+  } 
+  else{
+    return(marita)
+  }
+}
+adult$marital<-sapply(adult$marital,unmarried)
+print(table(adult$marital))
+
+###EDUCATION###
+print(table(adult$education))
+education_group<-function(edu){
+  edu<-as.character(edu)
+  if (edu=='1st-4th' | edu== '5th-6th'  |  edu=='7th-8th' |  edu== '9th' | edu== '10th' | edu== 'Preschool' |  edu== 'Prof-school'){
+    return('10th_Or-Below')
+  }else if(edu=='Assoc-acdm' | edu== 'Assoc-voc'  |  edu=='Some-college'){
+    return('Others')
+  } else if(edu== '11th' | edu== '12th'){
+    return('HS')
+  }else if(edu=='Hs-grad'| edu== 'Bachelors'){
+    return('Graduates')
+  }else{
+    
+    return(edu)
+  }
+}
+adult$education<-sapply(adult$education,education_group)
+print(table(adult$education))
+
+####Country column cleaning###
+print(table(adult$country))
+Asia <- c('China','Hong','India','Iran','Cambodia','Japan', 'Laos' ,
+          'Philippines' ,'Vietnam' ,'Taiwan', 'Thailand')
+
+North.America <- c('Canada','United-States','Puerto-Rico' )
+
+Europe <- c('England' ,'France', 'Germany' ,'Greece','Holand-Netherlands','Hungary',
+            'Ireland','Italy','Poland','Portugal','Scotland','Yugoslavia')
+
+Latin.and.South.America <- c('Columbia','Cuba','Dominican-Republic','Ecuador',
+                             'El-Salvador','Guatemala','Haiti','Honduras',
+                             'Mexico','Nicaragua','Outlying-US(Guam-USVI-etc)','Peru',
+                             'Jamaica','Trinadad&Tobago')
+Other <- c('South')
+group_country <- function(ctry){
+  if (ctry %in% Asia){
+    return('Asia')
+  }else if (ctry %in% North.America){
+    return('North.America')
+  }else if (ctry %in% Europe){
+    return('Europe')
+  }else if (ctry %in% Latin.and.South.America){
+    return('Latin.and.South.America')
+  }else{
+    return('Other')      
+  }
+}
+adult$country <- sapply(adult$country,group_country)
+print(table(adult$country))
+
+adult$type_employer <- sapply(adult$type_employer,factor)
+adult$country <- sapply(adult$country,factor)
+adult$marital <- sapply(adult$marital,factor)
+
+print(str(adult))
+
+###Amelia Imputation###
+library(Amelia)
+adult[adult == '?'] <- NA
+print(table(adult$type_employer))
+adult$type_employer <- sapply(adult$type_employer,factor)
+adult$country <- sapply(adult$country,factor)
+adult$marital <- sapply(adult$marital,factor)
+adult$relationship<-sapply(adult$relationship,factor)
+adult$education<-sapply(adult$education,factor)
+adult$occupation <- sapply(adult$occupation,factor)
+adult$income <- sapply(adult$income,factor)
+print(table(adult$type_employer))
+print(missmap(adult))
+
+adult <- na.omit(adult)
+#str(adult)
+###Use missmap() to check that all the NA values were in fact dropped.
+
+print(missmap(adult,y.at=c(1),y.labels = c(''),col=c('yellow','black')))
+str(adult)
+###Data Visualization####
+library(ggplot2)
+library(dplyr)
+
+print(ggplot(adult,aes(age))+ geom_histogram(aes(fill=income), color= 'black', binwidth=1))
+
+print(ggplot(adult,aes(type_employer))+geom_bar(aes(fill=income),color='black',binwidth=1))
+
+print(ggplot(adult,aes(hr_per_week))+geom_histogram())
+
+##Changing name of Country column to Region
+adult<-adult %>% rename(regions=country)
+str(adult)
+
+print(ggplot(adult,aes(regions))+geom_bar(aes(fill=income),color='black')+theme(axis.text.x = element_text(angle = 90, hjust = 1)))
+
+# Import Library
+library(caTools)
+
+# Setting up a random seed
+set.seed(101) 
+
+# Split up the sample, basically randomly assigns a booleans to a new column "sample"
+sample <- sample.split(adult$income, SplitRatio = 0.70) # SplitRatio = percent of sample==TRUE
+
+# Training Data
+train = subset(adult, sample == TRUE)
+
+# Testing Data
+test = subset(adult, sample == FALSE)
+
+model = glm(income ~ ., family = binomial(logit), data = train)
+
+print(anova(model,test="Chisq"))
+
+test$predicted.income<-predict(model,test,type="response")
+
+predicted<-function(prediction){
+  prediction<-as.numeric(prediction)
+  if (prediction == 0.5 | prediction < 0.5){
+    return('<=50k')
+  } else{
+    return('>50k')
+  }
+}
+test$income<-sapply(test$income,factor)
+test$predicted.income<-sapply(test$predicted.income,predicted)
+print(table(test$predicted.income))
+test$predicted.income <- sapply(test$predicted.income,factor)
+
+
+#Confusion Matrix
+print(cnf1<-table(test$income,test$predicted.income))
+print(Accuracy_LR<-sum(diag(cnf1))/sum(cnf1))
+se<-6374/(6374+1426)
+sprintf("Sensitivity of LR model is: %f",se)
+sp<-869/(869+546)
+sprintf("Specificity of LR model is: %f",sp)
+
+
+#BUILDING REGRESSION TREE
+
+library(rpart)
+tree <- rpart(income ~.,method='class',data = train)
+#Use predict() to predict the Private label on the test data.
+print(summary(tree))
+
+test$pred<-predict(tree,test,type="class")
+ print(test$pred)
+
+library(rattle)
+print(fancyRpartPlot(tree,box,palettes = c("Greens", "Reds"))) 
+
+#Accuracy features and Confusion Matrix
+library(caret)
+cnf2<-confusionMatrix(data = test$income,test$pred)
+print(cnf2)
+
+
+library(randomForest)
+
+# Create the forest.
+output.forest <- randomForest(income ~ ., 
+                              data = train)
+
+# View the forest results.
+print(output.forest) 
+
+# Importance of each predictor.
+print(importance(fit,type = 2))
+
+###Accuracy measure and Confusion Matrix##
+
+library(caret)
+cnf3<-confusionMatrix(data = test$income,test$random)
+print(cnf3)
+
+###Boosting Algorithm##
+
+
+
+
+
+
+
+
