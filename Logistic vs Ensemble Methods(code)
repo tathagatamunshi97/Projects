@@ -230,13 +230,15 @@ print(output.forest)
 # Importance of each predictor.
 print(importance(fit,type = 2))
 
-###Accuracy measure and Confusion Matrix##
+###Prediction
+test$output.forest<-predict(output.forest,test,type="class")
+print(test$output.forest)
+
+###Accuracy measures and Confusion Matrix##
 
 library(caret)
-cnf3<-confusionMatrix(data = test$income,test$random)
+cnf3<-confusionMatrix(data = test$income,test$output.forest)
 print(cnf3)
-
-###Boosting Algorithm##
 
 
 
